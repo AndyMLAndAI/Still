@@ -33,6 +33,7 @@ jobs:
         run: |
           SDK_VERSION=$(xcrun --show-sdk-version --sdk iphoneos)
           echo "Installed iOS SDK version: $SDK_VERSION"
+          echo "SDK_VERSION=$SDK_VERSION" >> $GITHUB_ENV
           
           # Per references/build-pipeline.md open question 2:
           # Check whether runner image has iOS 27 SDK; if not, build against newest available SDK.
@@ -44,23 +45,13 @@ jobs:
           
           xcodegen generate
 
-      - name: Resolve iPhone 17 Simulator
-        run: |
-          xcrun simctl list devices available | grep -i "iPhone"
-          SIM_ID=$(xcrun simctl list devices available | grep "iPhone 17 (" | head -n 1 | awk -F '[()]' '{print $2}')
-          if [ -z "$SIM_ID" ]; then
-            SIM_ID=$(xcrun simctl list devices available | grep "iPhone" | head -n 1 | awk -F '[()]' '{print $2}')
-          fi
-          echo "Selected Simulator ID: $SIM_ID"
-          echo "SIM_ID=$SIM_ID" >> $GITHUB_ENV
-
       - name: Run Tests & Capture Snapshots
         run: |
           mkdir -p screenshots
           mkdir -p /tmp/screenshots
           xcodebuild test \
             -scheme Still \
-            -destination "platform=iOS Simulator,id=$SIM_ID" \
+            -destination "platform=iOS Simulator,name=iPhone 17,OS=$SDK_VERSION" \
             -derivedDataPath build/DerivedData \
             -resultBundlePath build/TestResults.xcresult \
             -parallel-testing-enabled NO \
