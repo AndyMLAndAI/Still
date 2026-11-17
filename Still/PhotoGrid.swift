@@ -12,8 +12,6 @@ public struct PhotoGrid: View {
 
     @ObservedObject private var settings = SettingsStore.shared
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @State private var thumbnailImages: [String: CGImage] = [:]
-    @State private var pinchScale: CGFloat = 1.0
     @State private var basePinchScale: CGFloat = 1.0
 
     public init(
@@ -72,7 +70,7 @@ public struct PhotoGrid: View {
                                             isSelected: selectedAssetIds.contains(asset.id),
                                             isSelectionMode: isSelectionMode,
                                             size: tileSize,
-                                            thumbnailImage: thumbnailImages[asset.id],
+                                            library: library,
                                             onTap: {
                                                 if isSelectionMode {
                                                     onSelectAsset(asset)
@@ -88,14 +86,6 @@ public struct PhotoGrid: View {
                                             }
                                         )
                                         .id(asset.id)
-                                        .task {
-                                            if thumbnailImages[asset.id] == nil {
-                                                let img = await library.thumbnail(for: asset, size: CGSize(width: tileSize * 2, height: tileSize * 2))
-                                                if let img {
-                                                    thumbnailImages[asset.id] = img
-                                                }
-                                            }
-                                        }
                                     }
                                 }
                             }

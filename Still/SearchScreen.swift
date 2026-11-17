@@ -7,7 +7,6 @@ public struct SearchScreen: View {
     @ObservedObject private var settings = SettingsStore.shared
     @State private var query: String = ""
     @State private var selectedChipIds: Set<String> = []
-    @State private var thumbnailImages: [String: CGImage] = [:]
 
     public init(library: FakeLibrary, onOpenViewer: @escaping (PhotoAsset) -> Void = { _ in }) {
         self.library = library
@@ -51,7 +50,7 @@ public struct SearchScreen: View {
                 } else if monthName.contains(trimmed) {
                     matchReason = dateFormatter.string(from: asset.creationDate)
                 } else {
-                    return nil // Did not match text query
+                    return nil
                 }
             }
 
@@ -173,7 +172,7 @@ public struct SearchScreen: View {
                                         PhotoTile(
                                             asset: item.asset,
                                             size: tileSize,
-                                            thumbnailImage: thumbnailImages[item.asset.id],
+                                            library: library,
                                             onTap: {
                                                 settings.addRecentSearch(query)
                                                 onOpenViewer(item.asset)
@@ -188,14 +187,6 @@ public struct SearchScreen: View {
                                             .padding(.vertical, 2)
                                             .background(DesignColors.obsidian.opacity(0.8))
                                             .padding(4)
-                                    }
-                                    .task {
-                                        if thumbnailImages[item.asset.id] == nil {
-                                            let img = await library.thumbnail(for: item.asset, size: CGSize(width: tileSize * 2, height: tileSize * 2))
-                                            if let img {
-                                                thumbnailImages[item.asset.id] = img
-                                            }
-                                        }
                                     }
                                 }
                             }

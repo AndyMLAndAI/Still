@@ -6,10 +6,12 @@ public struct PhotoTile: View {
     public let isSelectionMode: Bool
     public let size: CGFloat
     public let thumbnailImage: CGImage?
+    public let library: (any MediaLibrary)?
     public var onTap: () -> Void
     public var onLongPress: () -> Void
     public var onFavoriteSwipe: () -> Void
 
+    @State private var loadedImage: CGImage? = nil
     @State private var dragOffset: CGFloat = 0
 
     public init(
@@ -18,6 +20,7 @@ public struct PhotoTile: View {
         isSelectionMode: Bool = false,
         size: CGFloat,
         thumbnailImage: CGImage? = nil,
+        library: (any MediaLibrary)? = nil,
         onTap: @escaping () -> Void = {},
         onLongPress: @escaping () -> Void = {},
         onFavoriteSwipe: @escaping () -> Void = {}
@@ -27,16 +30,21 @@ public struct PhotoTile: View {
         self.isSelectionMode = isSelectionMode
         self.size = size
         self.thumbnailImage = thumbnailImage
+        self.library = library
         self.onTap = onTap
         self.onLongPress = onLongPress
         self.onFavoriteSwipe = onFavoriteSwipe
+    }
+
+    private var effectiveImage: CGImage? {
+        thumbnailImage ?? loadedImage
     }
 
     public var body: some View {
         ZStack(alignment: .topTrailing) {
             // Base Square Tile: Corner Radius 0!
             Group {
-                if let cgImage = thumbnailImage {
+                if let cgImage = effectiveImage {
                     Image(decorative: cgImage, scale: 2.0)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
@@ -86,6 +94,12 @@ public struct PhotoTile: View {
         }
         .frame(width: size, height: size)
         .offset(x: dragOffset)
+        .task {
+            if effectiveImage == nil, let library {
+                let img = await library.thumbnail(for: asset, size: CGSize(width: size * 2, height: size * 2))
+                self.loadedImage = img
+            }
+        }
         .gesture(
             DragGesture(minimumDistance: 20)
                 .onChanged { value in

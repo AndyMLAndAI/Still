@@ -46,11 +46,12 @@ jobs:
 
       - name: Boot iPhone 17 Simulator
         run: |
-          xcodebuild -showdestinations -scheme Still
-          SIM_DEST=$(xcodebuild -showdestinations -scheme Still | grep "platform:iOS Simulator" | grep "name:iPhone 17" | head -n 1)
-          echo "Matched destination line: $SIM_DEST"
-          SIM_ID=$(echo "$SIM_DEST" | sed -E 's/.*id:([A-F0-9-]+).*/\1/')
-          echo "Resolved SIM_ID: $SIM_ID"
+          xcrun simctl list devices available | grep -i "iPhone"
+          SIM_ID=$(xcrun simctl list devices available | grep "iPhone 17 (" | head -n 1 | awk -F '[()]' '{print $2}')
+          if [ -z "$SIM_ID" ]; then
+            SIM_ID=$(xcrun simctl list devices available | grep "iPhone" | head -n 1 | awk -F '[()]' '{print $2}')
+          fi
+          echo "Selected Simulator ID: $SIM_ID"
           echo "SIM_ID=$SIM_ID" >> $GITHUB_ENV
           
           echo "Booting simulator $SIM_ID..."
