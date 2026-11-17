@@ -20,22 +20,23 @@ public final class FakeLibrary: ObservableObject, MediaLibrary {
         let places = ["Big Sur", "Tokyo", "Reykjavik", "Paris", "Yosemite", "Kyoto", "Venice", "Zion"]
         let tagsPool = ["Coast", "Architecture", "Mountain", "Night", "Street", "Forest", "Water", "Sky"]
 
-        // Anchor dates across August, September, October 2026
         var components = DateComponents()
         components.year = 2026
         components.day = 15
         components.hour = 12
 
         let months = [10, 9, 8] // Most recent first
+        let baseCountPerMonth = count / months.count
+        let remainder = count % months.count
 
         var currentId = 1
-        for month in months {
+        for (monthIndex, month) in months.enumerated() {
             components.month = month
             let baseDate = calendar.date(from: components) ?? Date()
-            let countForMonth = count / months.count
+            let countForThisMonth = baseCountPerMonth + (monthIndex < remainder ? 1 : 0)
 
-            for i in 0..<countForMonth {
-                let dayOffset = Double(i % 28)
+            for i in 0..<countForThisMonth {
+                let dayOffset = Double(28 - (i % 28))
                 let date = baseDate.addingTimeInterval(dayOffset * 86400)
                 let place = places[(currentId + i) % places.count]
                 let tag1 = tagsPool[(currentId * 2 + i) % tagsPool.count]
@@ -57,7 +58,6 @@ public final class FakeLibrary: ObservableObject, MediaLibrary {
             }
         }
 
-        // Sort descending by creation date
         self.allAssets = generated.sorted(by: { $0.creationDate > $1.creationDate })
         self.monthGroups = buildMonthGroups(from: self.allAssets)
     }
@@ -144,7 +144,6 @@ public final class FakeLibrary: ObservableObject, MediaLibrary {
             bitmapInfo: bitmapInfo
         ) else { return nil }
 
-        // Generate deterministic colors from hash
         let hash = UInt32(truncatingIfNeeded: asset.id.hashValue)
         let r = CGFloat((hash & 0xFF)) / 255.0 * 0.45 + 0.15
         let g = CGFloat(((hash >> 8) & 0xFF)) / 255.0 * 0.45 + 0.15
@@ -153,7 +152,6 @@ public final class FakeLibrary: ObservableObject, MediaLibrary {
         context.setFillColor(red: r, green: g, blue: b, alpha: 1.0)
         context.fill(CGRect(x: 0, y: 0, width: width, height: height))
 
-        // Draw a subtle geometric diagonal band
         context.setFillColor(red: min(1.0, r + 0.12), green: min(1.0, g + 0.12), blue: min(1.0, b + 0.12), alpha: 0.8)
         let path = CGMutablePath()
         path.move(to: CGPoint(x: 0, y: CGFloat(height)))
