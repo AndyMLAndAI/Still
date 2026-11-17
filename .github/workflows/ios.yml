@@ -44,7 +44,7 @@ jobs:
           
           xcodegen generate
 
-      - name: Boot iPhone 17 Simulator
+      - name: Resolve iPhone 17 Simulator
         run: |
           xcrun simctl list devices available | grep -i "iPhone"
           SIM_ID=$(xcrun simctl list devices available | grep "iPhone 17 (" | head -n 1 | awk -F '[()]' '{print $2}')
@@ -53,11 +53,6 @@ jobs:
           fi
           echo "Selected Simulator ID: $SIM_ID"
           echo "SIM_ID=$SIM_ID" >> $GITHUB_ENV
-          
-          echo "Booting simulator $SIM_ID..."
-          xcrun simctl boot "$SIM_ID" || true
-          xcrun simctl bootstatus "$SIM_ID" -b
-          echo "Simulator booted successfully."
 
       - name: Run Tests & Capture Snapshots
         run: |
@@ -66,10 +61,9 @@ jobs:
           xcodebuild test \
             -scheme Still \
             -destination "platform=iOS Simulator,id=$SIM_ID" \
-            -destination-timeout 60 \
-            -parallel-testing-enabled NO \
             -derivedDataPath build/DerivedData \
             -resultBundlePath build/TestResults.xcresult \
+            -parallel-testing-enabled NO \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
 
       - name: Build Archive (Generic iOS Device)
