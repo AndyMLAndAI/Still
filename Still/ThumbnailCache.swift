@@ -71,8 +71,12 @@ public final class ThumbnailCache: @unchecked Sendable {
         // Evict LRU entries if exceeding maxCost
         while currentCost > maxCost, let oldest = tail {
             nodeMap.removeValue(forKey: oldest.key)
-            currentCost -= oldest.cost
+            currentCost = max(0, currentCost - oldest.cost)
             removeNode(oldest)
+            if nodeMap.isEmpty {
+                currentCost = 0
+                break
+            }
         }
     }
 
