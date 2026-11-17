@@ -45,6 +45,10 @@ jobs:
           
           xcodegen generate
 
+      - name: Initialize Simulators
+        run: |
+          xcrun simctl list devices available | grep -i "iPhone"
+
       - name: Run Tests & Capture Snapshots
         run: |
           mkdir -p screenshots
