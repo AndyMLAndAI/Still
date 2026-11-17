@@ -44,18 +44,13 @@ jobs:
           
           xcodegen generate
 
-      - name: Set up iPhone 17 Simulator
+      - name: Resolve iPhone 17 Simulator Destination
         run: |
-          echo "Configuring simulator..."
-          xcrun simctl list devicetypes | grep -i "iPhone 17" || true
-          # Find iPhone 17 simulator device ID
-          SIM_ID=$(xcrun simctl list devices available | grep -E "iPhone 17 \(" | head -n 1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
-          if [ -z "$SIM_ID" ]; then
-            echo "Creating iPhone 17 simulator device..."
-            RUNTIME_ID=$(xcrun simctl list runtimes | grep -i "iOS" | tail -1 | awk '{print $NF}')
-            SIM_ID=$(xcrun simctl create "iPhone 17" "com.apple.CoreSimulator.SimDeviceType.iPhone-17" "$RUNTIME_ID")
-          fi
-          echo "Using iPhone 17 Simulator ID: $SIM_ID"
+          xcodebuild -showdestinations -scheme Still
+          SIM_DEST=$(xcodebuild -showdestinations -scheme Still | grep "platform:iOS Simulator" | grep "name:iPhone 17" | head -n 1)
+          echo "Matched destination line: $SIM_DEST"
+          SIM_ID=$(echo "$SIM_DEST" | sed -E 's/.*id:([A-F0-9-]+).*/\1/')
+          echo "Resolved SIM_ID: $SIM_ID"
           echo "SIM_ID=$SIM_ID" >> $GITHUB_ENV
 
       - name: Run Tests & Capture Snapshots
