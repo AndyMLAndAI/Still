@@ -10,10 +10,9 @@ final class SnapshotTests: XCTestCase {
 
     private func screenshotsDirectory() -> URL {
         let fileManager = FileManager.default
-        let currentDir = URL(fileURLWithPath: fileManager.currentDirectoryPath)
-        let screenshotsDir = currentDir.appendingPathComponent("screenshots", isDirectory: true)
-        try? fileManager.createDirectory(at: screenshotsDir, withIntermediateDirectories: true)
-        return screenshotsDir
+        let tempDir = URL(fileURLWithPath: "/tmp/screenshots", isDirectory: true)
+        try? fileManager.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        return tempDir
     }
 
     private func saveImage(_ image: UIImage, name: String) {
@@ -22,6 +21,10 @@ final class SnapshotTests: XCTestCase {
         if let data = image.pngData() {
             try? data.write(to: fileURL)
         }
+        let attachment = XCTAttachment(image: image)
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
     }
 
     // Snapshot test: Library screen at 393 x 852

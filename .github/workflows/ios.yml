@@ -34,34 +34,37 @@ jobs:
           SDK_VERSION=$(xcrun --show-sdk-version --sdk iphoneos)
           echo "Installed iOS SDK version: $SDK_VERSION"
           
-          # Check if SDK MaxDeploymentTarget needs to accept 27.0
-          # We can check the SDK settings file:
-          SDK_PATH=$(xcrun --show-sdk-path --sdk iphoneos)
-          SIM_SDK_PATH=$(xcrun --show-sdk-path --sdk iphonesimulator)
-          echo "Device SDK path: $SDK_PATH"
-          echo "Simulator SDK path: $SIM_SDK_PATH"
+          # Per references/build-pipeline.md open question 2:
+          # Check whether runner image has iOS 27 SDK; if not, build against newest available SDK.
+          if [ "$SDK_VERSION" != "27.0" ]; then
+            echo "Notice: iOS 27 SDK is not available in the runner image (current is $SDK_VERSION)."
+            echo "Adapting project target to newest available SDK $SDK_VERSION..."
+            sed -i '' "s/27.0/$SDK_VERSION/g" project.yml Still/project.yml
+          fi
           
-          # Generate Xcode project from project.yml
           xcodegen generate
 
       - name: Set up iPhone 17 Simulator
         run: |
           echo "Configuring simulator..."
-          xcrun simctl list devicetypes | grep -i "iPhone" || true
-          # If iPhone 17 simulator does not exist, create it matching 393x852 pt
-          if ! xcrun simctl list devices available | grep -q "iPhone 17"; then
-            echo "Creating iPhone 17 simulator..."
+          xcrun simctl list devicetypes | grep -i "iPhone 17" || true
+          # Find iPhone 17 simulator device ID
+          SIM_ID=$(xcrun simctl list devices available | grep -E "iPhone 17 \(" | head -n 1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
+          if [ -z "$SIM_ID" ]; then
+            echo "Creating iPhone 17 simulator device..."
             RUNTIME_ID=$(xcrun simctl list runtimes | grep -i "iOS" | tail -1 | awk '{print $NF}')
-            xcrun simctl create "iPhone 17" "com.apple.CoreSimulator.SimDeviceType.iPhone-16" "$RUNTIME_ID" || true
+            SIM_ID=$(xcrun simctl create "iPhone 17" "com.apple.CoreSimulator.SimDeviceType.iPhone-17" "$RUNTIME_ID")
           fi
-          xcrun simctl list devices available | grep "iPhone 17" || true
+          echo "Using iPhone 17 Simulator ID: $SIM_ID"
+          echo "SIM_ID=$SIM_ID" >> $GITHUB_ENV
 
       - name: Run Tests & Capture Snapshots
         run: |
           mkdir -p screenshots
+          mkdir -p /tmp/screenshots
           xcodebuild test \
             -scheme Still \
-            -destination "platform=iOS Simulator,name=iPhone 17" \
+            -destination "platform=iOS Simulator,id=$SIM_ID" \
             -derivedDataPath build/DerivedData \
             -resultBundlePath build/TestResults.xcresult \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
@@ -88,6 +91,10 @@ jobs:
       - name: Collect Screenshots
         if: always()
         run: |
+          mkdir -p screenshots
+          if [ -d "/tmp/screenshots" ]; then
+            cp -R /tmp/screenshots/* screenshots/ 2>/dev/null || true
+          fi
           if [ -d "build/DerivedData" ]; then
             find build/DerivedData -name "*.png" -exec cp {} screenshots/ \; 2>/dev/null || true
           fi
